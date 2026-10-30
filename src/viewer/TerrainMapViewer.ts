@@ -21,9 +21,10 @@ export class TerrainMapViewer {
   private userPin: Mesh | null = null;
   private actualPin: Mesh | null = null;
   private distanceLine: LinesMesh | null = null;
+  private currentPinCoords: Coordinates2D | null = null;
   private onPinPlacedCallback?: (coords: Coordinates2D) => void;
 
-  private mapSize = 100; // Normalized 100x100 3D world plane
+  public readonly mapSize = 100; // Normalized 100x100 3D world plane
 
   constructor(canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas, true);
@@ -71,16 +72,16 @@ export class TerrainMapViewer {
   private setupTerrainStyling() {
     const mat = new StandardMaterial('terrainMat', this.scene);
     
-    // Procedural terrain texture representing Skyrim holds
+    // Procedural terrain texture representing topographic grid
     const dynTexture = new DynamicTexture('terrainTex', { width: 1024, height: 1024 }, this.scene);
     const ctx = dynTexture.getContext() as unknown as CanvasRenderingContext2D;
 
-    // Map base parchment/terrain color
-    ctx.fillStyle = '#1c2430';
+    // Map base background
+    ctx.fillStyle = '#141b24';
     ctx.fillRect(0, 0, 1024, 1024);
 
-    // Decorative grid & border
-    ctx.strokeStyle = '#2d3d52';
+    // Grid lines
+    ctx.strokeStyle = '#223042';
     ctx.lineWidth = 2;
     for (let i = 0; i <= 1024; i += 128) {
       ctx.beginPath();
@@ -89,16 +90,19 @@ export class TerrainMapViewer {
       ctx.stroke();
     }
 
-    // Landmark text labels on map
-    ctx.fillStyle = '#e6c86e';
-    ctx.font = 'bold 26px sans-serif';
+    // Outer border
+    ctx.strokeStyle = '#384d66';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(4, 4, 1016, 1016);
+
+    // Cardinal compass points (plain text, no emojis)
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 28px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Solitude', 300, 200);
-    ctx.fillText('Windhelm', 750, 320);
-    ctx.fillText('Whiterun', 520, 520);
-    ctx.fillText('Markarth', 180, 580);
-    ctx.fillText('Riften', 820, 800);
-    ctx.fillText('Throat of the World', 600, 620);
+    ctx.fillText('N', 512, 40);
+    ctx.fillText('S', 512, 1000);
+    ctx.fillText('W', 40, 520);
+    ctx.fillText('E', 984, 520);
 
     dynTexture.update();
     mat.diffuseTexture = dynTexture;
@@ -107,9 +111,29 @@ export class TerrainMapViewer {
   }
 
   /**
+   * Converts 3D world position (x, z) to normalized [0, 1] map coordinates
+   */
+  public worldToNormalized(worldX: number, worldZ: number): Coordinates2D {
+    const normX = Math.max(0, Math.min(1, (worldX + this.mapSize / 2) / this.mapSize));
+    const normY = Math.max(0, Math.min(1, (worldZ + this.mapSize / 2) / this.mapSize));
+    return { x: Number(normX.toFixed(4)), y: Number(normY.toFixed(4)) };
+  }
+
+  /**
+   * Converts normalized [0, 1] map coordinates to 3D world position (x, z)
+   */
+  public normalizedToWorld(coords: Coordinates2D): { x: number; z: number } {
+    const clampedX = Math.max(0, Math.min(1, coords.x));
+    const clampedY = Math.max(0, Math.min(1, coords.y));
+    const worldX = clampedX * this.mapSize - this.mapSize / 2;
+    const worldZ = clampedY * this.mapSize - this.mapSize / 2;
+    return { x: Number(worldX.toFixed(2)), z: Number(worldZ.toFixed(2)) };
+  }
+
+  /**
    * Places a 3D pin marker at the picked 3D world position
    */
-  public placeUserPin(point: Vector3) {
+  public placeUserPin(point: Vector3): Coordinates2D {
     if (!this.userPin) {
       this.userPin = MeshBuilder.CreateCylinder('userPin', {
         height: 8,
@@ -125,26 +149,24 @@ export class TerrainMapViewer {
 
     this.userPin.position = new Vector3(point.x, point.y + 4, point.z);
 
-    // Normalize coordinates to [0, 1] range for game engine calculations
-    const normalizedX = (point.x + this.mapSize / 2) / this.mapSize;
-    const normalizedY = (point.z + this.mapSize / 2) / this.mapSize;
+    const normalized = this.worldToNormalized(point.x, point.z);
+    this.currentPinCoords = normalized;
 
     if (this.onPinPlacedCallback) {
-      this.onPinPlacedCallback({ x: normalizedX, y: normalizedY });
+      this.onPinPlacedCallback(normalized);
     }
+
+    return normalized;
   }
 
   /**
    * Reveals actual location and draws the distance line between guess and actual
    */
-  public revealRoundResult(actualCoords: Coordinates2D, guessCoords: Coordinates2D) {
-    const actualWorldX = actualCoords.x * this.mapSize - this.mapSize / 2;
-    const actualWorldZ = actualCoords.y * this.mapSize - this.mapSize / 2;
+  public revealRoundResult(actualCoords: Coordinates2D, guessCoords: Coordinates2D): void {
+    const actualWorld = this.normalizedToWorld(actualCoords);
+    const guessWorld = this.normalizedToWorld(guessCoords);
 
-    const guessWorldX = guessCoords.x * this.mapSize - this.mapSize / 2;
-    const guessWorldZ = guessCoords.y * this.mapSize - this.mapSize / 2;
-
-    // Create actual location marker (Green flag)
+    // Create actual location marker (Green sphere)
     if (!this.actualPin) {
       this.actualPin = MeshBuilder.CreateSphere('actualPin', { diameter: 4 }, this.scene);
       const actualMat = new StandardMaterial('actualPinMat', this.scene);
@@ -152,7 +174,7 @@ export class TerrainMapViewer {
       actualMat.emissiveColor = new Color3(0.1, 0.4, 0.2);
       this.actualPin.material = actualMat;
     }
-    this.actualPin.position = new Vector3(actualWorldX, 2, actualWorldZ);
+    this.actualPin.position = new Vector3(actualWorld.x, 2, actualWorld.z);
 
     // Draw connecting line
     if (this.distanceLine) {
@@ -160,14 +182,14 @@ export class TerrainMapViewer {
     }
     this.distanceLine = MeshBuilder.CreateLines('distanceLine', {
       points: [
-        new Vector3(guessWorldX, 2, guessWorldZ),
-        new Vector3(actualWorldX, 2, actualWorldZ)
+        new Vector3(guessWorld.x, 2, guessWorld.z),
+        new Vector3(actualWorld.x, 2, actualWorld.z)
       ]
     }, this.scene);
     this.distanceLine.color = new Color3(0.5, 0.8, 1);
   }
 
-  public clearPins() {
+  public clearPins(): void {
     if (this.userPin) {
       this.userPin.dispose();
       this.userPin = null;
@@ -180,13 +202,22 @@ export class TerrainMapViewer {
       this.distanceLine.dispose();
       this.distanceLine = null;
     }
+    this.currentPinCoords = null;
   }
 
-  public onPinPlaced(callback: (coords: Coordinates2D) => void) {
+  public getPinCoords(): Coordinates2D | null {
+    return this.currentPinCoords;
+  }
+
+  public hasPin(): boolean {
+    return this.currentPinCoords !== null;
+  }
+
+  public onPinPlaced(callback: (coords: Coordinates2D) => void): void {
     this.onPinPlacedCallback = callback;
   }
 
-  public resize() {
+  public resize(): void {
     this.engine.resize();
   }
 }
