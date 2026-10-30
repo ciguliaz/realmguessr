@@ -53,3 +53,17 @@ export function setupLobby(onStartGame: (settings: MatchSettings) => void) {
     }, 400);
   });
 }
+
+/**
+ * Re-opens the Lobby overlay with smooth fade-in
+ */
+export function openLobby() {
+  const lobbyOverlay = document.getElementById('lobbyOverlay');
+  if (lobbyOverlay) {
+    lobbyOverlay.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      lobbyOverlay.classList.remove('opacity-0', 'pointer-events-none');
+    });
+  }
+}
+

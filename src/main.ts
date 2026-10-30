@@ -1,9 +1,10 @@
 import './style.css';
-import { setupLobby, MatchSettings } from './ui/lobby';
+import { setupLobby, openLobby, MatchSettings } from './ui/lobby';
 
 // DOM Elements
 const inGameHud = document.getElementById('inGameHud');
 const minimapContainer = document.getElementById('minimapContainer');
+const returnToMenuBtn = document.getElementById('returnToMenuBtn');
 
 // Boot Lobby UI
 setupLobby((settings: MatchSettings) => {
@@ -13,3 +14,11 @@ setupLobby((settings: MatchSettings) => {
 
   console.log('Game starting with settings:', settings);
 });
+
+// Return to Menu action
+returnToMenuBtn?.addEventListener('click', () => {
+  if (inGameHud) inGameHud.classList.add('hidden');
+  if (minimapContainer) minimapContainer.classList.add('hidden');
+  openLobby();
+});
+
