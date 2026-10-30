@@ -73,7 +73,7 @@ export class TerrainMapViewer {
     
     // Procedural terrain texture representing Skyrim holds
     const dynTexture = new DynamicTexture('terrainTex', { width: 1024, height: 1024 }, this.scene);
-    const ctx = dynTexture.getContext();
+    const ctx = dynTexture.getContext() as unknown as CanvasRenderingContext2D;
 
     // Map base parchment/terrain color
     ctx.fillStyle = '#1c2430';

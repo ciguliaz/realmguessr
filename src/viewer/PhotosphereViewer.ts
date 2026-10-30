@@ -2,6 +2,7 @@ import {
   Engine,
   Scene,
   ArcRotateCamera,
+  ArcRotateCameraPointersInput,
   Vector3,
   PhotoDome,
   DynamicTexture,
@@ -28,7 +29,10 @@ export class PhotosphereViewer {
       this.scene
     );
     this.camera.attachControl(canvas, true);
-    this.camera.inputs.attached.pointers.buttons = [0]; // Left click drag
+    const pointersInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput;
+    if (pointersInput) {
+      pointersInput.buttons = [0]; // Left click drag
+    }
     this.camera.lowerRadiusLimit = 1;
     this.camera.upperRadiusLimit = 1; // Locked radius so we orbit in place
     this.camera.fov = 1.1; // Comfortable wide field-of-view
@@ -75,7 +79,7 @@ export class PhotosphereViewer {
     }
 
     const dynTexture = new DynamicTexture('fallbackPano', { width: 2048, height: 1024 }, this.scene);
-    const ctx = dynTexture.getContext();
+    const ctx = dynTexture.getContext() as unknown as CanvasRenderingContext2D;
 
     // Sky & mountain gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, 1024);
