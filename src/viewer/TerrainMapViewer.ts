@@ -23,6 +23,7 @@ export class TerrainMapViewer {
   private distanceLine: LinesMesh | null = null;
   private currentPinCoords: Coordinates2D | null = null;
   private onPinPlacedCallback?: (coords: Coordinates2D) => void;
+  private isRendering = false;
 
   public readonly mapSize = 100; // Normalized 100x100 3D world plane
 
@@ -45,13 +46,17 @@ export class TerrainMapViewer {
     this.camera.upperRadiusLimit = 200;
     this.camera.upperBetaLimit = Math.PI / 2.1; // Don't go below ground
 
-    // Create 3D terrain base
+    // Create 3D terrain base (8 subdivisions for optimal performance)
     this.terrain = MeshBuilder.CreateGround(
       'terrain',
-      { width: this.mapSize, height: this.mapSize, subdivisions: 32 },
+      { width: this.mapSize, height: this.mapSize, subdivisions: 8 },
       this.scene
     );
+    this.terrain.isPickable = true;
     this.setupTerrainStyling();
+
+    // Restrict pointer picking strictly to terrain ground mesh
+    this.scene.pointerDownPredicate = (mesh) => mesh === this.terrain;
 
     // Raycast on click to place pin
     this.scene.onPointerDown = (evt, pickResult) => {
@@ -60,13 +65,41 @@ export class TerrainMapViewer {
       }
     };
 
-    this.engine.runRenderLoop(() => {
-      this.scene.render();
-    });
+    // Render loop is managed on demand
+    this.startRendering();
 
     window.addEventListener('resize', () => {
       this.engine.resize();
+      if (!this.isRendering) {
+        this.scene.render();
+      }
     });
+  }
+
+  public startRendering(): void {
+    if (this.isRendering) {
+      return;
+    }
+    this.isRendering = true;
+    this.engine.runRenderLoop(() => {
+      this.scene.render();
+    });
+  }
+
+  public stopRendering(): void {
+    if (!this.isRendering) {
+      return;
+    }
+    this.isRendering = false;
+    this.engine.stopRenderLoop();
+  }
+
+  public isCurrentlyRendering(): boolean {
+    return this.isRendering;
+  }
+
+  public renderOnce(): void {
+    this.scene.render();
   }
 
   private setupTerrainStyling() {
@@ -140,6 +173,7 @@ export class TerrainMapViewer {
         diameterTop: 0,
         diameterBottom: 2.5,
       }, this.scene);
+      this.userPin.isPickable = false;
 
       const pinMat = new StandardMaterial('userPinMat', this.scene);
       pinMat.diffuseColor = new Color3(0.9, 0.7, 0.2); // Gold marker
@@ -156,6 +190,10 @@ export class TerrainMapViewer {
       this.onPinPlacedCallback(normalized);
     }
 
+    if (!this.isRendering) {
+      this.scene.render();
+    }
+
     return normalized;
   }
 
@@ -169,6 +207,7 @@ export class TerrainMapViewer {
     // Create actual location marker (Green sphere)
     if (!this.actualPin) {
       this.actualPin = MeshBuilder.CreateSphere('actualPin', { diameter: 4 }, this.scene);
+      this.actualPin.isPickable = false;
       const actualMat = new StandardMaterial('actualPinMat', this.scene);
       actualMat.diffuseColor = new Color3(0.2, 0.8, 0.4);
       actualMat.emissiveColor = new Color3(0.1, 0.4, 0.2);
@@ -186,7 +225,12 @@ export class TerrainMapViewer {
         new Vector3(actualWorld.x, 2, actualWorld.z)
       ]
     }, this.scene);
+    this.distanceLine.isPickable = false;
     this.distanceLine.color = new Color3(0.5, 0.8, 1);
+
+    if (!this.isRendering) {
+      this.scene.render();
+    }
   }
 
   public clearPins(): void {
@@ -203,6 +247,10 @@ export class TerrainMapViewer {
       this.distanceLine = null;
     }
     this.currentPinCoords = null;
+
+    if (!this.isRendering) {
+      this.scene.render();
+    }
   }
 
   public getPinCoords(): Coordinates2D | null {
@@ -219,5 +267,8 @@ export class TerrainMapViewer {
 
   public resize(): void {
     this.engine.resize();
+    if (!this.isRendering) {
+      this.scene.render();
+    }
   }
 }
