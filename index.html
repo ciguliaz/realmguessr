@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/compass.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RealmGuessr - Open World 3D GeoGuessr</title>
+  </head>
+  <body class="bg-skyrim-dark text-slate-100 font-sans select-none overflow-hidden h-screen w-screen m-0 p-0">
+    <div id="app" class="relative w-full h-full">
+      <!-- 360 Panorama Viewport Canvas -->
+      <canvas id="panoCanvas" class="absolute inset-0 w-full h-full block outline-none z-0"></canvas>
+
+      <!-- HUD Top Bar -->
+      <header class="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+        <div class="flex items-center gap-3 bg-skyrim-card/80 backdrop-blur-md px-4 py-2 rounded-xl border border-skyrim-border/60 pointer-events-auto shadow-lg">
+          <div class="w-8 h-8 rounded-lg bg-skyrim-accent/20 flex items-center justify-center text-skyrim-accent font-bold">
+            ⚔️
+          </div>
+          <div>
+            <h1 class="text-sm font-bold tracking-wider uppercase text-skyrim-gold">RealmGuessr</h1>
+            <p id="gameTitle" class="text-xs text-slate-400">Skyrim Province</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 bg-skyrim-card/80 backdrop-blur-md px-6 py-2 rounded-xl border border-skyrim-border/60 pointer-events-auto shadow-lg">
+          <div class="text-center">
+            <span class="text-xs uppercase text-slate-400 block font-semibold">Round</span>
+            <span id="roundIndicator" class="text-lg font-bold text-skyrim-ice">1 / 5</span>
+          </div>
+          <div class="h-8 w-px bg-skyrim-border/60"></div>
+          <div class="text-center">
+            <span class="text-xs uppercase text-slate-400 block font-semibold">Total Score</span>
+            <span id="scoreIndicator" class="text-lg font-bold text-skyrim-accent">0</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 3D Minimap Overlay (Bottom-Right) -->
+      <aside id="minimapContainer" class="absolute bottom-6 right-6 z-30 transition-all duration-300 ease-in-out w-80 h-64 md:w-96 md:h-80 bg-skyrim-card/90 backdrop-blur-md rounded-2xl border border-skyrim-border shadow-2xl flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-3 py-2 bg-skyrim-dark/60 border-b border-skyrim-border text-xs text-slate-300">
+          <span class="font-medium flex items-center gap-1.5">
+            🗺️ <span id="mapTitle">Skyrim World Map</span>
+          </span>
+          <button id="expandMapBtn" class="hover:text-skyrim-gold transition-colors text-xs font-semibold px-2 py-0.5 rounded bg-slate-800/60">
+            Expand
+          </button>
+        </div>
+
+        <div class="relative flex-1 w-full h-full bg-slate-950">
+          <canvas id="mapCanvas" class="w-full h-full block outline-none"></canvas>
+          <div id="mapInstructions" class="absolute bottom-2 left-2 right-2 text-center text-[11px] text-slate-400 bg-black/60 backdrop-blur-sm py-1 px-2 rounded pointer-events-none">
+            Click terrain to place your pin
+          </div>
+        </div>
+
+        <div class="p-3 bg-skyrim-card border-t border-skyrim-border flex items-center justify-between gap-3">
+          <button id="clearPinBtn" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
+            Clear Pin
+          </button>
+          <button id="submitGuessBtn" disabled class="flex-1 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg bg-skyrim-accent hover:bg-skyrim-gold text-slate-950 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md">
+            Place Pin to Guess
+          </button>
+        </div>
+      </aside>
+
+      <!-- Round Result Modal -->
+      <div id="roundResultModal" class="hidden absolute inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-skyrim-card border border-skyrim-border rounded-2xl p-6 max-w-md w-full shadow-2xl text-center space-y-4">
+          <h2 class="text-xl font-bold text-skyrim-gold">Round Result</h2>
+          <div class="py-2">
+            <span class="text-xs uppercase text-slate-400 block font-semibold">Distance</span>
+            <p id="resultDistance" class="text-3xl font-extrabold text-skyrim-ice mt-1">0 m</p>
+          </div>
+          <div class="py-2 border-y border-skyrim-border/50">
+            <span class="text-xs uppercase text-slate-400 block font-semibold">Round Points</span>
+            <p id="resultPoints" class="text-4xl font-black text-skyrim-accent mt-1">+0</p>
+          </div>
+          <p id="resultLocationName" class="text-sm text-slate-300 italic"></p>
+          <button id="nextRoundBtn" class="w-full py-3 bg-skyrim-accent hover:bg-skyrim-gold text-slate-950 font-bold rounded-xl uppercase tracking-wider transition-all shadow-lg">
+            Next Round
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
