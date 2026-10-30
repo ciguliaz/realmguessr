@@ -24,11 +24,18 @@ export class TerrainMapViewer {
   private currentPinCoords: Coordinates2D | null = null;
   private onPinPlacedCallback?: (coords: Coordinates2D) => void;
   private isRendering = false;
+  private needsRender = true;
 
   public readonly mapSize = 100; // Normalized 100x100 3D world plane
 
   constructor(canvas: HTMLCanvasElement) {
-    this.engine = new Engine(canvas, true);
+    this.engine = new Engine(canvas, false, {
+      preserveDrawingBuffer: false,
+      stencil: false,
+      powerPreference: 'high-performance',
+    });
+    this.engine.setHardwareScalingLevel(1.0);
+
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.04, 0.06, 0.09, 1);
 
@@ -65,11 +72,17 @@ export class TerrainMapViewer {
       }
     };
 
-    // Render loop is managed on demand
+    // Trigger rendering whenever camera moves or rotates
+    this.camera.onViewMatrixChangedObservable.add(() => {
+      this.needsRender = true;
+    });
+
+    // Render loop lifecycle with on-demand check
     this.startRendering();
 
     window.addEventListener('resize', () => {
       this.engine.resize();
+      this.needsRender = true;
       if (!this.isRendering) {
         this.scene.render();
       }
@@ -81,8 +94,17 @@ export class TerrainMapViewer {
       return;
     }
     this.isRendering = true;
+    this.needsRender = true;
     this.engine.runRenderLoop(() => {
-      this.scene.render();
+      const hasInertia =
+        this.camera.inertialAlphaOffset !== 0 ||
+        this.camera.inertialBetaOffset !== 0 ||
+        this.camera.inertialRadiusOffset !== 0;
+
+      if (this.needsRender || hasInertia) {
+        this.scene.render();
+        this.needsRender = false;
+      }
     });
   }
 
@@ -99,6 +121,7 @@ export class TerrainMapViewer {
   }
 
   public renderOnce(): void {
+    this.needsRender = true;
     this.scene.render();
   }
 
@@ -190,9 +213,8 @@ export class TerrainMapViewer {
       this.onPinPlacedCallback(normalized);
     }
 
-    if (!this.isRendering) {
-      this.scene.render();
-    }
+    this.needsRender = true;
+    this.scene.render();
 
     return normalized;
   }
@@ -228,9 +250,8 @@ export class TerrainMapViewer {
     this.distanceLine.isPickable = false;
     this.distanceLine.color = new Color3(0.5, 0.8, 1);
 
-    if (!this.isRendering) {
-      this.scene.render();
-    }
+    this.needsRender = true;
+    this.scene.render();
   }
 
   public clearPins(): void {
@@ -248,9 +269,8 @@ export class TerrainMapViewer {
     }
     this.currentPinCoords = null;
 
-    if (!this.isRendering) {
-      this.scene.render();
-    }
+    this.needsRender = true;
+    this.scene.render();
   }
 
   public getPinCoords(): Coordinates2D | null {
@@ -267,6 +287,7 @@ export class TerrainMapViewer {
 
   public resize(): void {
     this.engine.resize();
+    this.needsRender = true;
     if (!this.isRendering) {
       this.scene.render();
     }

@@ -14,6 +14,7 @@ export class PhotosphereViewer {
   private camera: ArcRotateCamera;
   private currentDome: PhotoDome | null = null;
   private isRendering = false;
+  private needsRender = true;
 
   constructor(canvas: HTMLCanvasElement) {
     // Disable preserveDrawingBuffer and MSAA for maximum performance on budget/integrated GPUs
@@ -48,11 +49,17 @@ export class PhotosphereViewer {
     this.camera.angularSensibilityX = 1000;
     this.camera.angularSensibilityY = 1000;
 
-    // Render loop lifecycle
+    // Trigger rendering whenever camera moves or rotates
+    this.camera.onViewMatrixChangedObservable.add(() => {
+      this.needsRender = true;
+    });
+
+    // Render loop lifecycle with on-demand check
     this.startRendering();
 
     window.addEventListener('resize', () => {
       this.engine.resize();
+      this.needsRender = true;
       if (!this.isRendering) {
         this.scene.render();
       }
@@ -64,8 +71,18 @@ export class PhotosphereViewer {
       return;
     }
     this.isRendering = true;
+    this.needsRender = true;
     this.engine.runRenderLoop(() => {
-      this.scene.render();
+      // Check if camera is actively moving or gliding from inertia
+      const hasInertia =
+        this.camera.inertialAlphaOffset !== 0 ||
+        this.camera.inertialBetaOffset !== 0 ||
+        this.camera.inertialRadiusOffset !== 0;
+
+      if (this.needsRender || hasInertia) {
+        this.scene.render();
+        this.needsRender = false;
+      }
     });
   }
 
@@ -82,6 +99,7 @@ export class PhotosphereViewer {
   }
 
   public renderOnce(): void {
+    this.needsRender = true;
     this.scene.render();
   }
 
@@ -108,9 +126,8 @@ export class PhotosphereViewer {
       this.createFallbackPanorama();
     }
 
-    if (!this.isRendering) {
-      this.scene.render();
-    }
+    this.needsRender = true;
+    this.scene.render();
   }
 
   /**
@@ -141,25 +158,26 @@ export class PhotosphereViewer {
     ctx.font = '24px sans-serif';
     ctx.fillText('Look around in 360 degrees with left mouse button', 1024, 540);
 
-    dynTexture.update();
+    dynTexture.update(false);
 
     this.currentDome = new PhotoDome(
       'fallbackDome',
-      dynTexture.name,
+      '',
       {
         resolution: 16,
         size: 1000,
       },
       this.scene
     );
+    this.currentDome.photoTexture = dynTexture;
 
-    if (!this.isRendering) {
-      this.scene.render();
-    }
+    this.needsRender = true;
+    this.scene.render();
   }
 
   public resize() {
     this.engine.resize();
+    this.needsRender = true;
     if (!this.isRendering) {
       this.scene.render();
     }
