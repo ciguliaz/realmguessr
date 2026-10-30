@@ -59,6 +59,7 @@ function initEngines(): void {
 
 function startMatch(settings: MatchSettings): void {
   initEngines();
+  panoViewer?.startRendering();
   terrainViewer?.startRendering();
 
   const snapshot = gameSession.start(settings);
@@ -149,6 +150,7 @@ function abortToMenu(): void {
   minimapController?.clearPin();
   terrainViewer?.clearPins();
   terrainViewer?.stopRendering();
+  panoViewer?.stopRendering();
   resultModalController?.hide();
 
   inGameHud.classList.add('hidden');

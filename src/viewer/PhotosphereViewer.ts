@@ -13,9 +13,17 @@ export class PhotosphereViewer {
   private scene: Scene;
   private camera: ArcRotateCamera;
   private currentDome: PhotoDome | null = null;
+  private isRendering = false;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+    // Disable preserveDrawingBuffer and MSAA for maximum performance on budget/integrated GPUs
+    this.engine = new Engine(canvas, false, {
+      preserveDrawingBuffer: false,
+      stencil: false,
+      powerPreference: 'high-performance',
+    });
+    this.engine.setHardwareScalingLevel(1.0); // Standard 1:1 pixel rendering
+
     this.scene = new Scene(this.engine);
     this.scene.clearColor.set(0.06, 0.08, 0.11, 1);
 
@@ -36,14 +44,45 @@ export class PhotosphereViewer {
     this.camera.lowerRadiusLimit = 1;
     this.camera.upperRadiusLimit = 1; // Locked radius so we orbit in place
     this.camera.fov = 1.1; // Comfortable wide field-of-view
+    this.camera.inertia = 0.65; // Responsive pointer tracking without sluggish float
+    this.camera.angularSensibilityX = 1000;
+    this.camera.angularSensibilityY = 1000;
 
-    this.engine.runRenderLoop(() => {
-      this.scene.render();
-    });
+    // Render loop lifecycle
+    this.startRendering();
 
     window.addEventListener('resize', () => {
       this.engine.resize();
+      if (!this.isRendering) {
+        this.scene.render();
+      }
     });
+  }
+
+  public startRendering(): void {
+    if (this.isRendering) {
+      return;
+    }
+    this.isRendering = true;
+    this.engine.runRenderLoop(() => {
+      this.scene.render();
+    });
+  }
+
+  public stopRendering(): void {
+    if (!this.isRendering) {
+      return;
+    }
+    this.isRendering = false;
+    this.engine.stopRenderLoop();
+  }
+
+  public isCurrentlyRendering(): boolean {
+    return this.isRendering;
+  }
+
+  public renderOnce(): void {
+    this.scene.render();
   }
 
   /**
@@ -60,13 +99,17 @@ export class PhotosphereViewer {
         'streetviewDome',
         url,
         {
-          resolution: 32,
+          resolution: 16,
           size: 1000,
         },
         this.scene
       );
     } catch {
       this.createFallbackPanorama();
+    }
+
+    if (!this.isRendering) {
+      this.scene.render();
     }
   }
 
@@ -90,13 +133,13 @@ export class PhotosphereViewer {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 2048, 1024);
 
-    // Decorative grid & landmark text
+    // Decorative grid & landmark text (clean, no emojis)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.font = 'bold 48px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(text, 1024, 480);
     ctx.font = '24px sans-serif';
-    ctx.fillText('Look around in 360° with left mouse button', 1024, 540);
+    ctx.fillText('Look around in 360 degrees with left mouse button', 1024, 540);
 
     dynTexture.update();
 
@@ -104,14 +147,21 @@ export class PhotosphereViewer {
       'fallbackDome',
       dynTexture.name,
       {
-        resolution: 32,
+        resolution: 16,
         size: 1000,
       },
       this.scene
     );
+
+    if (!this.isRendering) {
+      this.scene.render();
+    }
   }
 
   public resize() {
     this.engine.resize();
+    if (!this.isRendering) {
+      this.scene.render();
+    }
   }
 }
