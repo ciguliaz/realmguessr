@@ -8,7 +8,10 @@ import {
   DynamicTexture,
 } from '@babylonjs/core';
 
+import { UserSettings, DEFAULT_SETTINGS } from '../core/settings';
+
 export class PhotosphereViewer {
+  private userSettings: UserSettings = { ...DEFAULT_SETTINGS };
   private engine: Engine;
   private scene: Scene;
   private camera: ArcRotateCamera;
@@ -52,8 +55,8 @@ export class PhotosphereViewer {
     this.camera.upperRadiusLimit = 1; // Locked radius so we orbit in place
     this.camera.fov = 1.1; // Comfortable wide field-of-view
     this.camera.inertia = 0.65; // Responsive pointer tracking without sluggish float
-    this.camera.angularSensibilityX = 1000;
-    this.camera.angularSensibilityY = 1000;
+    this.camera.angularSensibilityX = -1000;
+    this.camera.angularSensibilityY = -1000;
 
     // Track pointer dragging for dynamic resolution scaling
     canvas.addEventListener('pointerdown', (e) => {
@@ -61,6 +64,27 @@ export class PhotosphereViewer {
         this.isDragging = true;
       }
     });
+    // FOV Zoom with mouse wheel
+    canvas.addEventListener(
+      'wheel',
+      (e) => {
+        if (!this.userSettings.enableZoom) {
+          return;
+        }
+        e.preventDefault();
+        const zoomStep = e.deltaY * 0.001;
+        const newFov = Math.min(Math.max(this.camera.fov + zoomStep, 0.4), 1.35);
+        if (Math.abs(newFov - this.camera.fov) > 0.001) {
+          this.camera.fov = newFov;
+          this.needsRender = true;
+          if (!this.isRendering) {
+            this.scene.render();
+          }
+        }
+      },
+      { passive: false }
+    );
+
     window.addEventListener('pointerup', () => {
       this.isDragging = false;
     });
@@ -82,6 +106,36 @@ export class PhotosphereViewer {
     });
   }
 
+  public applySettings(settings: UserSettings): void {
+    this.userSettings = { ...settings };
+
+    // Base sensibility is 1000. Higher sensitivity divides base to increase rotation speed.
+    const baseSensibility = 1000 / Math.max(0.1, settings.sensitivity);
+    this.camera.angularSensibilityX = settings.invertX ? baseSensibility : -baseSensibility;
+    this.camera.angularSensibilityY = settings.invertY ? baseSensibility : -baseSensibility;
+
+    // Toggle dynamic resolution scaling level
+    this.motionScalingLevel = settings.dynamicResolution ? 1.5 : 1.0;
+    if (!this.isMotionActive) {
+      this.engine.setHardwareScalingLevel(this.normalScalingLevel);
+    } else {
+      this.engine.setHardwareScalingLevel(this.motionScalingLevel);
+    }
+
+    // Reset FOV if zoom is disabled
+    if (!settings.enableZoom && this.camera.fov !== 1.1) {
+      this.camera.fov = 1.1;
+      this.needsRender = true;
+      if (!this.isRendering) {
+        this.scene.render();
+      }
+    }
+  }
+
+  public getUserSettings(): UserSettings {
+    return { ...this.userSettings };
+  }
+
   public setMotionScaling(motionLevel: number, normalLevel = 1.0): void {
     this.motionScalingLevel = Math.max(1.0, motionLevel);
     this.normalScalingLevel = Math.max(0.5, normalLevel);
@@ -95,6 +149,7 @@ export class PhotosphereViewer {
       return;
     }
     this.isRendering = true;
+    this.engine.resize();
     this.needsRender = true;
     this.engine.runRenderLoop(() => {
       const hasInertia =
@@ -118,10 +173,14 @@ export class PhotosphereViewer {
           this.isMotionActive = false;
           this.engine.setHardwareScalingLevel(this.normalScalingLevel);
           this.scene.render();
-          this.needsRender = false;
+          if (this.scene.isReady()) {
+            this.needsRender = false;
+          }
         } else if (this.needsRender) {
           this.scene.render();
-          this.needsRender = false;
+          if (this.scene.isReady()) {
+            this.needsRender = false;
+          }
         }
       }
     });
@@ -181,6 +240,9 @@ export class PhotosphereViewer {
       );
       this.currentDome.mesh.freezeWorldMatrix();
       this.currentDome.mesh.doNotSyncBoundingInfo = true;
+      this.scene.executeWhenReady(() => {
+        this.renderOnce();
+      });
     } catch {
       this.createFallbackPanorama();
     }
@@ -230,6 +292,9 @@ export class PhotosphereViewer {
       this.scene
     );
     this.currentDome.photoTexture = dynTexture;
+    this.scene.executeWhenReady(() => {
+      this.renderOnce();
+    });
     this.currentDome.mesh.freezeWorldMatrix();
     this.currentDome.mesh.doNotSyncBoundingInfo = true;
 

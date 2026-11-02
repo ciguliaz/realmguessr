@@ -103,7 +103,9 @@ export class TerrainMapViewer {
 
       if (this.needsRender || hasInertia) {
         this.scene.render();
-        this.needsRender = false;
+        if (this.scene.isReady()) {
+          this.needsRender = false;
+        }
       }
     });
   }

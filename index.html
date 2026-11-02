@@ -30,9 +30,14 @@
                 <p class="text-xs text-slate-400">Open-world 3D location discovery & exploration</p>
               </div>
             </div>
-            <div class="hidden sm:flex items-center gap-3 text-xs text-slate-400 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Babylon.js 3D Engine Active</span>
+            <div class="flex items-center gap-2">
+              <button id="lobbySettingsBtn" class="text-xs font-semibold px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-skyrim-gold border border-slate-800 transition-colors cursor-pointer">
+                Settings
+              </button>
+              <div class="hidden sm:flex items-center gap-3 text-xs text-slate-400 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Babylon.js 3D Engine Active</span>
+              </div>
             </div>
           </div>
 
@@ -136,6 +141,9 @@
           <button id="returnToMenuBtn" class="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-skyrim-gold transition-colors flex items-center gap-1.5 cursor-pointer">
             <span>Menu</span>
           </button>
+          <button id="hudSettingsBtn" class="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-skyrim-gold transition-colors flex items-center gap-1.5 cursor-pointer">
+            <span>Settings</span>
+          </button>
           <div class="h-6 w-px bg-slate-800"></div>
           <div class="w-8 h-8 rounded-xl bg-skyrim-accent/20 flex items-center justify-center text-skyrim-accent font-bold">
             RG
@@ -207,6 +215,95 @@
           <button id="nextRoundBtn" class="w-full py-3.5 bg-skyrim-accent hover:bg-skyrim-gold text-slate-950 font-bold rounded-xl uppercase tracking-wider transition-all shadow-lg">
             Next Round
           </button>
+        </div>
+      </div>
+
+      <!-- Settings Modal -->
+      <div id="settingsModal" class="hidden absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <h2 class="text-lg font-bold text-skyrim-gold">Settings</h2>
+            <button id="closeSettingsBtn" class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer">
+              Close
+            </button>
+          </div>
+
+          <div class="space-y-4 text-xs">
+            <!-- Controls Section -->
+            <div class="space-y-3">
+              <span class="font-bold uppercase tracking-wider text-slate-400 block">Controls & Camera</span>
+
+              <!-- Invert X -->
+              <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                <div>
+                  <span class="font-semibold text-slate-200 block">Invert Horizontal Drag</span>
+                  <span class="text-slate-500 text-[11px]">Inverts left/right camera panning</span>
+                </div>
+                <button id="invertXBtn" class="px-3.5 py-1.5 rounded-lg border border-slate-800 text-slate-400 font-semibold transition-colors cursor-pointer min-w-[70px] text-center">
+                  Normal
+                </button>
+              </div>
+
+              <!-- Invert Y -->
+              <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                <div>
+                  <span class="font-semibold text-slate-200 block">Invert Vertical Drag</span>
+                  <span class="text-slate-500 text-[11px]">Inverts up/down camera panning</span>
+                </div>
+                <button id="invertYBtn" class="px-3.5 py-1.5 rounded-lg border border-slate-800 text-slate-400 font-semibold transition-colors cursor-pointer min-w-[70px] text-center">
+                  Normal
+                </button>
+              </div>
+
+              <!-- Sensitivity Slider -->
+              <div class="space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <span class="font-semibold text-slate-200 block">Drag Sensitivity</span>
+                    <span class="text-slate-500 text-[11px]">Camera rotation speed</span>
+                  </div>
+                  <span id="sensitivityValue" class="font-mono text-skyrim-accent font-bold">100%</span>
+                </div>
+                <input id="sensitivitySlider" type="range" min="50" max="200" step="5" value="100" class="w-full accent-skyrim-accent cursor-pointer" />
+              </div>
+
+              <!-- Zoom Toggle -->
+              <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                <div>
+                  <span class="font-semibold text-slate-200 block">Mouse Wheel Zoom</span>
+                  <span class="text-slate-500 text-[11px]">Allow FOV zooming via scroll wheel</span>
+                </div>
+                <button id="zoomBtn" class="px-3.5 py-1.5 rounded-lg border border-slate-800 text-slate-400 font-semibold transition-colors cursor-pointer min-w-[70px] text-center">
+                  Enabled
+                </button>
+              </div>
+            </div>
+
+            <!-- Graphics Section -->
+            <div class="space-y-3 pt-2 border-t border-slate-800">
+              <span class="font-bold uppercase tracking-wider text-slate-400 block">Graphics & Performance</span>
+
+              <!-- Dynamic Resolution Scaling -->
+              <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                <div>
+                  <span class="font-semibold text-slate-200 block">Dynamic Resolution Scaling</span>
+                  <span class="text-slate-500 text-[11px]">Drops to 720p during drag for 60 FPS</span>
+                </div>
+                <button id="dynamicResBtn" class="px-3.5 py-1.5 rounded-lg border border-slate-800 text-slate-400 font-semibold transition-colors cursor-pointer min-w-[140px] text-center">
+                  Enabled
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+            <button id="resetSettingsBtn" class="text-xs text-slate-400 hover:text-rose-400 transition-colors font-medium cursor-pointer">
+              Reset to Defaults
+            </button>
+            <button id="doneSettingsBtn" class="px-5 py-2.5 bg-skyrim-accent hover:bg-skyrim-gold text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer">
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>

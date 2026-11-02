@@ -2,8 +2,10 @@ import './style.css';
 import { setupLobby, openLobby, MatchSettings } from './ui/lobby';
 import { GameSession, GameSessionSnapshot } from './core/gameLoop';
 import { RoundTimer } from './core/timer';
+import { SettingsManager } from './core/settings';
 import { MinimapController } from './ui/minimap';
 import { ResultModalController } from './ui/resultModal';
+import { SettingsModalController } from './ui/settingsModal';
 import { PhotosphereViewer } from './viewer/PhotosphereViewer';
 import { TerrainMapViewer } from './viewer/TerrainMapViewer';
 import { DebugOverlayController } from './ui/debugOverlay';
@@ -13,6 +15,8 @@ import { Coordinates2D } from './core/types';
 const inGameHud = document.getElementById('inGameHud')!;
 const minimapContainer = document.getElementById('minimapContainer')!;
 const returnToMenuBtn = document.getElementById('returnToMenuBtn')!;
+const lobbySettingsBtn = document.getElementById('lobbySettingsBtn')!;
+const hudSettingsBtn = document.getElementById('hudSettingsBtn')!;
 const roundIndicator = document.getElementById('roundIndicator')!;
 const scoreIndicator = document.getElementById('scoreIndicator')!;
 const timerContainer = document.getElementById('timerContainer')!;
@@ -21,6 +25,7 @@ const gameTitle = document.getElementById('gameTitle')!;
 const panoCanvas = document.getElementById('panoCanvas') as HTMLCanvasElement;
 const mapCanvas = document.getElementById('mapCanvas') as HTMLCanvasElement;
 const debugOverlayElement = document.getElementById('debugOverlay')!;
+const settingsModalElement = document.getElementById('settingsModal')!;
 
 // Persistent singletons to prevent WebGL context leaks
 let panoViewer: PhotosphereViewer | null = null;
@@ -28,13 +33,16 @@ let terrainViewer: TerrainMapViewer | null = null;
 let minimapController: MinimapController | null = null;
 let resultModalController: ResultModalController | null = null;
 let debugOverlayController: DebugOverlayController | null = null;
+let settingsModalController: SettingsModalController | null = null;
 
 const gameSession = new GameSession();
 const roundTimer = new RoundTimer();
+const settingsManager = new SettingsManager();
 
 function initEngines(): void {
   if (!panoViewer) {
     panoViewer = new PhotosphereViewer(panoCanvas);
+    panoViewer.applySettings(settingsManager.getSettings());
   }
 
   if (!terrainViewer) {
@@ -59,6 +67,44 @@ function initEngines(): void {
     });
   }
 }
+
+// Reactively apply settings to viewers
+settingsManager.subscribe((settings) => {
+  panoViewer?.applySettings(settings);
+});
+
+// Setup Settings Modal Controller
+settingsModalController = new SettingsModalController(
+  {
+    container: settingsModalElement,
+    invertXBtn: document.getElementById('invertXBtn') as HTMLButtonElement,
+    invertYBtn: document.getElementById('invertYBtn') as HTMLButtonElement,
+    sensitivitySlider: document.getElementById('sensitivitySlider') as HTMLInputElement,
+    sensitivityValue: document.getElementById('sensitivityValue')!,
+    zoomBtn: document.getElementById('zoomBtn') as HTMLButtonElement,
+    dynamicResBtn: document.getElementById('dynamicResBtn') as HTMLButtonElement,
+    resetBtn: document.getElementById('resetSettingsBtn') as HTMLButtonElement,
+    closeBtn: document.getElementById('closeSettingsBtn') as HTMLButtonElement,
+  },
+  settingsManager
+);
+
+// Connect Done button in settings modal
+const doneSettingsBtn = document.getElementById('doneSettingsBtn');
+if (doneSettingsBtn) {
+  doneSettingsBtn.addEventListener('click', () => {
+    settingsModalController?.close();
+  });
+}
+
+// Open settings from lobby or in-game HUD
+lobbySettingsBtn.addEventListener('click', () => {
+  settingsModalController?.open();
+});
+
+hudSettingsBtn.addEventListener('click', () => {
+  settingsModalController?.open();
+});
 
 function startMatch(settings: MatchSettings): void {
   initEngines();
@@ -155,6 +201,7 @@ function abortToMenu(): void {
   terrainViewer?.stopRendering();
   panoViewer?.stopRendering();
   resultModalController?.hide();
+  settingsModalController?.close();
 
   inGameHud.classList.add('hidden');
   minimapContainer.classList.add('hidden');
@@ -180,6 +227,11 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'F3') {
     e.preventDefault();
     debugOverlayController?.toggle();
+  } else if (e.code === 'Escape') {
+    if (settingsModalController?.isOpen()) {
+      e.preventDefault();
+      settingsModalController.close();
+    }
   }
 });
 
