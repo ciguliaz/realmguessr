@@ -149,6 +149,7 @@ export class PhotosphereViewer {
       return;
     }
     this.isRendering = true;
+    this.engine.resize();
     this.needsRender = true;
     this.engine.runRenderLoop(() => {
       const hasInertia =
@@ -172,10 +173,14 @@ export class PhotosphereViewer {
           this.isMotionActive = false;
           this.engine.setHardwareScalingLevel(this.normalScalingLevel);
           this.scene.render();
-          this.needsRender = false;
+          if (this.scene.isReady()) {
+            this.needsRender = false;
+          }
         } else if (this.needsRender) {
           this.scene.render();
-          this.needsRender = false;
+          if (this.scene.isReady()) {
+            this.needsRender = false;
+          }
         }
       }
     });
@@ -235,6 +240,9 @@ export class PhotosphereViewer {
       );
       this.currentDome.mesh.freezeWorldMatrix();
       this.currentDome.mesh.doNotSyncBoundingInfo = true;
+      this.scene.executeWhenReady(() => {
+        this.renderOnce();
+      });
     } catch {
       this.createFallbackPanorama();
     }
@@ -284,6 +292,9 @@ export class PhotosphereViewer {
       this.scene
     );
     this.currentDome.photoTexture = dynTexture;
+    this.scene.executeWhenReady(() => {
+      this.renderOnce();
+    });
     this.currentDome.mesh.freezeWorldMatrix();
     this.currentDome.mesh.doNotSyncBoundingInfo = true;
 
