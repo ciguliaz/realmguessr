@@ -163,6 +163,8 @@ export class PhotosphereViewer {
         },
         this.scene
       );
+      this.currentDome.mesh.freezeWorldMatrix();
+      this.currentDome.mesh.doNotSyncBoundingInfo = true;
     } catch {
       this.createFallbackPanorama();
     }
@@ -212,6 +214,8 @@ export class PhotosphereViewer {
       this.scene
     );
     this.currentDome.photoTexture = dynTexture;
+    this.currentDome.mesh.freezeWorldMatrix();
+    this.currentDome.mesh.doNotSyncBoundingInfo = true;
 
     this.needsRender = true;
     this.scene.render();
