@@ -55,8 +55,8 @@ export class PhotosphereViewer {
     this.camera.upperRadiusLimit = 1; // Locked radius so we orbit in place
     this.camera.fov = 1.1; // Comfortable wide field-of-view
     this.camera.inertia = 0.65; // Responsive pointer tracking without sluggish float
-    this.camera.angularSensibilityX = 1000;
-    this.camera.angularSensibilityY = 1000;
+    this.camera.angularSensibilityX = -1000;
+    this.camera.angularSensibilityY = -1000;
 
     // Track pointer dragging for dynamic resolution scaling
     canvas.addEventListener('pointerdown', (e) => {
@@ -111,8 +111,8 @@ export class PhotosphereViewer {
 
     // Base sensibility is 1000. Higher sensitivity divides base to increase rotation speed.
     const baseSensibility = 1000 / Math.max(0.1, settings.sensitivity);
-    this.camera.angularSensibilityX = settings.invertX ? -baseSensibility : baseSensibility;
-    this.camera.angularSensibilityY = settings.invertY ? -baseSensibility : baseSensibility;
+    this.camera.angularSensibilityX = settings.invertX ? baseSensibility : -baseSensibility;
+    this.camera.angularSensibilityY = settings.invertY ? baseSensibility : -baseSensibility;
 
     // Toggle dynamic resolution scaling level
     this.motionScalingLevel = settings.dynamicResolution ? 1.5 : 1.0;
