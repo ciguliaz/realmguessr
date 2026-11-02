@@ -16,6 +16,12 @@ export class PhotosphereViewer {
   private isRendering = false;
   private needsRender = true;
 
+  // Dynamic resolution scaling state
+  private isMotionActive = false;
+  private isDragging = false;
+  private normalScalingLevel = 1.0;
+  private motionScalingLevel = 1.5;
+
   constructor(canvas: HTMLCanvasElement) {
     // Disable preserveDrawingBuffer and MSAA for maximum performance on budget/integrated GPUs
     this.engine = new Engine(canvas, false, {
@@ -23,7 +29,7 @@ export class PhotosphereViewer {
       stencil: false,
       powerPreference: 'high-performance',
     });
-    this.engine.setHardwareScalingLevel(1.0); // Standard 1:1 pixel rendering
+    this.engine.setHardwareScalingLevel(this.normalScalingLevel);
 
     this.scene = new Scene(this.engine);
     this.scene.clearColor.set(0.06, 0.08, 0.11, 1);
@@ -49,12 +55,22 @@ export class PhotosphereViewer {
     this.camera.angularSensibilityX = 1000;
     this.camera.angularSensibilityY = 1000;
 
+    // Track pointer dragging for dynamic resolution scaling
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button === 0) {
+        this.isDragging = true;
+      }
+    });
+    window.addEventListener('pointerup', () => {
+      this.isDragging = false;
+    });
+
     // Trigger rendering whenever camera moves or rotates
     this.camera.onViewMatrixChangedObservable.add(() => {
       this.needsRender = true;
     });
 
-    // Render loop lifecycle with on-demand check
+    // Render loop lifecycle with dynamic resolution scaling
     this.startRendering();
 
     window.addEventListener('resize', () => {
@@ -66,6 +82,14 @@ export class PhotosphereViewer {
     });
   }
 
+  public setMotionScaling(motionLevel: number, normalLevel = 1.0): void {
+    this.motionScalingLevel = Math.max(1.0, motionLevel);
+    this.normalScalingLevel = Math.max(0.5, normalLevel);
+    if (!this.isMotionActive) {
+      this.engine.setHardwareScalingLevel(this.normalScalingLevel);
+    }
+  }
+
   public startRendering(): void {
     if (this.isRendering) {
       return;
@@ -73,15 +97,32 @@ export class PhotosphereViewer {
     this.isRendering = true;
     this.needsRender = true;
     this.engine.runRenderLoop(() => {
-      // Check if camera is actively moving or gliding from inertia
       const hasInertia =
-        this.camera.inertialAlphaOffset !== 0 ||
-        this.camera.inertialBetaOffset !== 0 ||
-        this.camera.inertialRadiusOffset !== 0;
+        Math.abs(this.camera.inertialAlphaOffset) > 0.0001 ||
+        Math.abs(this.camera.inertialBetaOffset) > 0.0001 ||
+        Math.abs(this.camera.inertialRadiusOffset) > 0.0001;
 
-      if (this.needsRender || hasInertia) {
+      const isMoving = this.isDragging || hasInertia;
+
+      if (isMoving) {
+        // Switch to lightweight resolution during motion (e.g. 1.5x scaling = ~720p)
+        if (!this.isMotionActive) {
+          this.isMotionActive = true;
+          this.engine.setHardwareScalingLevel(this.motionScalingLevel);
+        }
         this.scene.render();
         this.needsRender = false;
+      } else {
+        // Motion has ceased: restore crystal clear 1080p (1.0) and render one sharp final frame
+        if (this.isMotionActive) {
+          this.isMotionActive = false;
+          this.engine.setHardwareScalingLevel(this.normalScalingLevel);
+          this.scene.render();
+          this.needsRender = false;
+        } else if (this.needsRender) {
+          this.scene.render();
+          this.needsRender = false;
+        }
       }
     });
   }
@@ -138,7 +179,8 @@ export class PhotosphereViewer {
       this.currentDome.dispose();
     }
 
-    const dynTexture = new DynamicTexture('fallbackPano', { width: 2048, height: 1024 }, this.scene);
+    // generateMipMaps = false avoids heavy mipmap generation passes
+    const dynTexture = new DynamicTexture('fallbackPano', { width: 2048, height: 1024 }, this.scene, false);
     const ctx = dynTexture.getContext() as unknown as CanvasRenderingContext2D;
 
     // Sky & mountain gradient
