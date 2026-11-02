@@ -8,7 +8,10 @@ import {
   DynamicTexture,
 } from '@babylonjs/core';
 
+import { UserSettings, DEFAULT_SETTINGS } from '../core/settings';
+
 export class PhotosphereViewer {
+  private userSettings: UserSettings = { ...DEFAULT_SETTINGS };
   private engine: Engine;
   private scene: Scene;
   private camera: ArcRotateCamera;
@@ -61,6 +64,27 @@ export class PhotosphereViewer {
         this.isDragging = true;
       }
     });
+    // FOV Zoom with mouse wheel
+    canvas.addEventListener(
+      'wheel',
+      (e) => {
+        if (!this.userSettings.enableZoom) {
+          return;
+        }
+        e.preventDefault();
+        const zoomStep = e.deltaY * 0.001;
+        const newFov = Math.min(Math.max(this.camera.fov + zoomStep, 0.4), 1.35);
+        if (Math.abs(newFov - this.camera.fov) > 0.001) {
+          this.camera.fov = newFov;
+          this.needsRender = true;
+          if (!this.isRendering) {
+            this.scene.render();
+          }
+        }
+      },
+      { passive: false }
+    );
+
     window.addEventListener('pointerup', () => {
       this.isDragging = false;
     });
@@ -80,6 +104,36 @@ export class PhotosphereViewer {
         this.scene.render();
       }
     });
+  }
+
+  public applySettings(settings: UserSettings): void {
+    this.userSettings = { ...settings };
+
+    // Base sensibility is 1000. Higher sensitivity divides base to increase rotation speed.
+    const baseSensibility = 1000 / Math.max(0.1, settings.sensitivity);
+    this.camera.angularSensibilityX = settings.invertX ? -baseSensibility : baseSensibility;
+    this.camera.angularSensibilityY = settings.invertY ? -baseSensibility : baseSensibility;
+
+    // Toggle dynamic resolution scaling level
+    this.motionScalingLevel = settings.dynamicResolution ? 1.5 : 1.0;
+    if (!this.isMotionActive) {
+      this.engine.setHardwareScalingLevel(this.normalScalingLevel);
+    } else {
+      this.engine.setHardwareScalingLevel(this.motionScalingLevel);
+    }
+
+    // Reset FOV if zoom is disabled
+    if (!settings.enableZoom && this.camera.fov !== 1.1) {
+      this.camera.fov = 1.1;
+      this.needsRender = true;
+      if (!this.isRendering) {
+        this.scene.render();
+      }
+    }
+  }
+
+  public getUserSettings(): UserSettings {
+    return { ...this.userSettings };
   }
 
   public setMotionScaling(motionLevel: number, normalLevel = 1.0): void {
