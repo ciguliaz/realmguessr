@@ -6,6 +6,7 @@ import { MinimapController } from './ui/minimap';
 import { ResultModalController } from './ui/resultModal';
 import { PhotosphereViewer } from './viewer/PhotosphereViewer';
 import { TerrainMapViewer } from './viewer/TerrainMapViewer';
+import { DebugOverlayController } from './ui/debugOverlay';
 import { Coordinates2D } from './core/types';
 
 // DOM Element references
@@ -19,12 +20,14 @@ const timerIndicator = document.getElementById('timerIndicator')!;
 const gameTitle = document.getElementById('gameTitle')!;
 const panoCanvas = document.getElementById('panoCanvas') as HTMLCanvasElement;
 const mapCanvas = document.getElementById('mapCanvas') as HTMLCanvasElement;
+const debugOverlayElement = document.getElementById('debugOverlay')!;
 
 // Persistent singletons to prevent WebGL context leaks
 let panoViewer: PhotosphereViewer | null = null;
 let terrainViewer: TerrainMapViewer | null = null;
 let minimapController: MinimapController | null = null;
 let resultModalController: ResultModalController | null = null;
+let debugOverlayController: DebugOverlayController | null = null;
 
 const gameSession = new GameSession();
 const roundTimer = new RoundTimer();
@@ -59,6 +62,8 @@ function initEngines(): void {
 
 function startMatch(settings: MatchSettings): void {
   initEngines();
+  panoViewer?.startRendering();
+  terrainViewer?.startRendering();
 
   const snapshot = gameSession.start(settings);
 
@@ -147,6 +152,8 @@ function abortToMenu(): void {
   minimapController?.collapse();
   minimapController?.clearPin();
   terrainViewer?.clearPins();
+  terrainViewer?.stopRendering();
+  panoViewer?.stopRendering();
   resultModalController?.hide();
 
   inGameHud.classList.add('hidden');
@@ -157,6 +164,24 @@ function abortToMenu(): void {
 
 // Attach Abort / Menu Return
 returnToMenuBtn.addEventListener('click', abortToMenu);
+
+// Setup F3 Debug Overlay Controller (Global)
+debugOverlayController = new DebugOverlayController(debugOverlayElement, {
+  getSessionState: () => gameSession.getSnapshot().state,
+  getRoundInfo: () => {
+    const snap = gameSession.getSnapshot();
+    return snap.state === 'IDLE' ? 'Lobby' : `Round ${snap.currentRoundIndex + 1}/${snap.totalRounds}`;
+  },
+  getPanoMetrics: () => (panoViewer ? panoViewer.getPerformanceMetrics() : null),
+  getMapMetrics: () => (terrainViewer ? terrainViewer.getPerformanceMetrics() : null),
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'F3') {
+    e.preventDefault();
+    debugOverlayController?.toggle();
+  }
+});
 
 // Boot Lobby
 setupLobby(startMatch);

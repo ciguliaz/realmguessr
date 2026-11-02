@@ -23,11 +23,19 @@ export class TerrainMapViewer {
   private distanceLine: LinesMesh | null = null;
   private currentPinCoords: Coordinates2D | null = null;
   private onPinPlacedCallback?: (coords: Coordinates2D) => void;
+  private isRendering = false;
+  private needsRender = true;
 
   public readonly mapSize = 100; // Normalized 100x100 3D world plane
 
   constructor(canvas: HTMLCanvasElement) {
-    this.engine = new Engine(canvas, true);
+    this.engine = new Engine(canvas, false, {
+      preserveDrawingBuffer: false,
+      stencil: false,
+      powerPreference: 'high-performance',
+    });
+    this.engine.setHardwareScalingLevel(1.0);
+
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.04, 0.06, 0.09, 1);
 
@@ -45,13 +53,17 @@ export class TerrainMapViewer {
     this.camera.upperRadiusLimit = 200;
     this.camera.upperBetaLimit = Math.PI / 2.1; // Don't go below ground
 
-    // Create 3D terrain base
+    // Create 3D terrain base (8 subdivisions for optimal performance)
     this.terrain = MeshBuilder.CreateGround(
       'terrain',
-      { width: this.mapSize, height: this.mapSize, subdivisions: 32 },
+      { width: this.mapSize, height: this.mapSize, subdivisions: 8 },
       this.scene
     );
+    this.terrain.isPickable = true;
     this.setupTerrainStyling();
+
+    // Restrict pointer picking strictly to terrain ground mesh
+    this.scene.pointerDownPredicate = (mesh) => mesh === this.terrain;
 
     // Raycast on click to place pin
     this.scene.onPointerDown = (evt, pickResult) => {
@@ -60,13 +72,69 @@ export class TerrainMapViewer {
       }
     };
 
-    this.engine.runRenderLoop(() => {
-      this.scene.render();
+    // Trigger rendering whenever camera moves or rotates
+    this.camera.onViewMatrixChangedObservable.add(() => {
+      this.needsRender = true;
     });
+
+    // Render loop lifecycle with on-demand check
+    this.startRendering();
 
     window.addEventListener('resize', () => {
       this.engine.resize();
+      this.needsRender = true;
+      if (!this.isRendering) {
+        this.scene.render();
+      }
     });
+  }
+
+  public startRendering(): void {
+    if (this.isRendering) {
+      return;
+    }
+    this.isRendering = true;
+    this.needsRender = true;
+    this.engine.runRenderLoop(() => {
+      const hasInertia =
+        this.camera.inertialAlphaOffset !== 0 ||
+        this.camera.inertialBetaOffset !== 0 ||
+        this.camera.inertialRadiusOffset !== 0;
+
+      if (this.needsRender || hasInertia) {
+        this.scene.render();
+        this.needsRender = false;
+      }
+    });
+  }
+
+  public stopRendering(): void {
+    if (!this.isRendering) {
+      return;
+    }
+    this.isRendering = false;
+    this.engine.stopRenderLoop();
+  }
+
+  public isCurrentlyRendering(): boolean {
+    return this.isRendering;
+  }
+
+  public renderOnce(): void {
+    this.needsRender = true;
+    this.scene.render();
+  }
+
+  public getPerformanceMetrics(): {
+    fps: number;
+    isRendering: boolean;
+    drawCalls: number;
+  } {
+    return {
+      fps: Math.round(this.engine.getFps()),
+      isRendering: this.isRendering,
+      drawCalls: (this.engine as unknown as { _drawCalls?: { current?: number } })._drawCalls?.current ?? this.scene.getActiveMeshes().length,
+    };
   }
 
   private setupTerrainStyling() {
@@ -140,6 +208,7 @@ export class TerrainMapViewer {
         diameterTop: 0,
         diameterBottom: 2.5,
       }, this.scene);
+      this.userPin.isPickable = false;
 
       const pinMat = new StandardMaterial('userPinMat', this.scene);
       pinMat.diffuseColor = new Color3(0.9, 0.7, 0.2); // Gold marker
@@ -156,6 +225,9 @@ export class TerrainMapViewer {
       this.onPinPlacedCallback(normalized);
     }
 
+    this.needsRender = true;
+    this.scene.render();
+
     return normalized;
   }
 
@@ -169,6 +241,7 @@ export class TerrainMapViewer {
     // Create actual location marker (Green sphere)
     if (!this.actualPin) {
       this.actualPin = MeshBuilder.CreateSphere('actualPin', { diameter: 4 }, this.scene);
+      this.actualPin.isPickable = false;
       const actualMat = new StandardMaterial('actualPinMat', this.scene);
       actualMat.diffuseColor = new Color3(0.2, 0.8, 0.4);
       actualMat.emissiveColor = new Color3(0.1, 0.4, 0.2);
@@ -186,7 +259,11 @@ export class TerrainMapViewer {
         new Vector3(actualWorld.x, 2, actualWorld.z)
       ]
     }, this.scene);
+    this.distanceLine.isPickable = false;
     this.distanceLine.color = new Color3(0.5, 0.8, 1);
+
+    this.needsRender = true;
+    this.scene.render();
   }
 
   public clearPins(): void {
@@ -203,6 +280,9 @@ export class TerrainMapViewer {
       this.distanceLine = null;
     }
     this.currentPinCoords = null;
+
+    this.needsRender = true;
+    this.scene.render();
   }
 
   public getPinCoords(): Coordinates2D | null {
@@ -219,5 +299,9 @@ export class TerrainMapViewer {
 
   public resize(): void {
     this.engine.resize();
+    this.needsRender = true;
+    if (!this.isRendering) {
+      this.scene.render();
+    }
   }
 }

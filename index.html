@@ -11,9 +11,12 @@
       <!-- 360 Panorama Viewport Canvas -->
       <canvas id="panoCanvas" class="absolute inset-0 w-full h-full block outline-none z-0"></canvas>
 
-      <!-- Clean Modern Lobby Overlay (Visible initially) -->
-      <div id="lobbyOverlay" class="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-6 transition-all duration-500 ease-out">
-        <div class="max-w-4xl w-full bg-slate-900/70 border border-slate-800/90 rounded-3xl p-8 shadow-2xl space-y-8 backdrop-blur-2xl">
+      <!-- F3 Debug & Performance Overlay (Global toggle) -->
+      <div id="debugOverlay" class="hidden fixed top-3 left-3 z-50 pointer-events-none select-none font-mono text-[11px] leading-tight text-emerald-400 bg-slate-950/90 border border-slate-800 rounded-xl p-3 shadow-2xl min-w-[220px]"></div>
+
+      <!-- Clean Modern Lobby Overlay (Visible initially, optimized solid background without backdrop-blur) -->
+      <div id="lobbyOverlay" class="absolute inset-0 z-40 bg-slate-950/95 flex items-center justify-center p-6 transition-all duration-500 ease-out">
+        <div class="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-8">
           <!-- Header -->
           <div class="flex items-center justify-between border-b border-slate-800/60 pb-6">
             <div class="flex items-center gap-4">
@@ -27,7 +30,7 @@
                 <p class="text-xs text-slate-400">Open-world 3D location discovery & exploration</p>
               </div>
             </div>
-            <div class="hidden sm:flex items-center gap-3 text-xs text-slate-400 bg-slate-950/60 px-4 py-2 rounded-xl border border-slate-800">
+            <div class="hidden sm:flex items-center gap-3 text-xs text-slate-400 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>Babylon.js 3D Engine Active</span>
             </div>
@@ -38,12 +41,11 @@
             <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400">1. Select Realm</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <!-- Skyrim Card (Active) -->
-              <div class="group relative cursor-pointer rounded-2xl p-5 border-2 border-skyrim-accent bg-gradient-to-b from-skyrim-card/90 to-slate-900/90 shadow-lg shadow-skyrim-accent/10 transition-all hover:scale-[1.02]">
+              <div class="group relative cursor-pointer rounded-2xl p-5 border-2 border-skyrim-accent bg-slate-900 shadow-lg shadow-skyrim-accent/10 transition-all hover:scale-[1.02]">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-xs font-bold uppercase tracking-wider text-skyrim-accent bg-skyrim-accent/20 px-2.5 py-1 rounded-full border border-skyrim-accent/30">
                     Active Realm
                   </span>
-                  
                 </div>
                 <h3 class="text-base font-bold text-slate-100 group-hover:text-skyrim-gold transition-colors">
                   The Elder Scrolls V: Skyrim
@@ -54,24 +56,22 @@
               </div>
 
               <!-- Elden Ring Card (Coming Soon) -->
-              <div class="relative opacity-50 cursor-not-allowed rounded-2xl p-5 border border-slate-800 bg-slate-950/40">
+              <div class="relative opacity-50 cursor-not-allowed rounded-2xl p-5 border border-slate-800 bg-slate-950">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-800/80 px-2.5 py-0.5 rounded-full">
                     Coming Soon
                   </span>
-                  
                 </div>
                 <h3 class="text-base font-bold text-slate-300">Elden Ring</h3>
                 <p class="text-xs text-slate-500 mt-1">The Lands Between • Erdtrees, Caelid, Limgrave</p>
               </div>
 
               <!-- GTA V Card (Coming Soon) -->
-              <div class="relative opacity-50 cursor-not-allowed rounded-2xl p-5 border border-slate-800 bg-slate-950/40">
+              <div class="relative opacity-50 cursor-not-allowed rounded-2xl p-5 border border-slate-800 bg-slate-950">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-800/80 px-2.5 py-0.5 rounded-full">
                     Coming Soon
                   </span>
-                  
                 </div>
                 <h3 class="text-base font-bold text-slate-300">Grand Theft Auto V</h3>
                 <p class="text-xs text-slate-500 mt-1">Los Santos & Blaine County urban explorer</p>
@@ -84,7 +84,7 @@
             <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400">2. Match Settings</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Round Timer Setting -->
-              <div class="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-4 space-y-2">
+              <div class="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 space-y-2">
                 <span class="text-xs text-slate-400 font-semibold block">Round Timer</span>
                 <div class="grid grid-cols-3 gap-2 text-xs font-semibold">
                   <button class="timer-btn py-2 rounded-xl bg-skyrim-accent text-slate-950 font-bold transition-all shadow-md" data-time="0">
@@ -100,7 +100,7 @@
               </div>
 
               <!-- Movement Mode Setting -->
-              <div class="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-4 space-y-2">
+              <div class="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 space-y-2">
                 <span class="text-xs text-slate-400 font-semibold block">Exploration Mode</span>
                 <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
                   <button class="mode-btn py-2 rounded-xl bg-skyrim-accent text-slate-950 font-bold transition-all shadow-md" data-mode="classic">
@@ -130,11 +130,10 @@
         </div>
       </div>
 
-      <!-- HUD Top Bar (In-game) -->
+      <!-- HUD Top Bar (In-game, clean solid backgrounds) -->
       <header id="inGameHud" class="hidden absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none transition-opacity duration-300">
-        <div class="flex items-center gap-3 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-800 pointer-events-auto shadow-lg">
+        <div class="flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-2xl border border-slate-800 pointer-events-auto shadow-lg">
           <button id="returnToMenuBtn" class="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-skyrim-gold transition-colors flex items-center gap-1.5 cursor-pointer">
-            
             <span>Menu</span>
           </button>
           <div class="h-6 w-px bg-slate-800"></div>
@@ -147,7 +146,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-4 bg-slate-900/80 backdrop-blur-md px-6 py-2 rounded-2xl border border-slate-800 pointer-events-auto shadow-lg">
+        <div class="flex items-center gap-4 bg-slate-900 px-6 py-2 rounded-2xl border border-slate-800 pointer-events-auto shadow-lg">
           <div class="text-center">
             <span class="text-[10px] uppercase text-slate-400 block font-semibold">Round</span>
             <span id="roundIndicator" class="text-base font-bold text-skyrim-ice">1 / 5</span>
@@ -164,20 +163,20 @@
         </div>
       </header>
 
-      <!-- 3D Minimap Overlay (Bottom-Right) -->
-      <aside id="minimapContainer" class="hidden absolute bottom-6 right-6 z-30 transition-all duration-300 ease-in-out w-80 h-64 md:w-96 md:h-80 bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-800 shadow-2xl flex flex-col overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-2.5 bg-slate-950/70 border-b border-slate-800 text-xs text-slate-300">
+      <!-- 3D Minimap Overlay (Bottom-Right, solid dark panel) -->
+      <aside id="minimapContainer" class="hidden absolute bottom-6 right-6 z-30 transition-all duration-300 ease-in-out w-80 h-64 md:w-96 md:h-80 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-2.5 bg-slate-950 border-b border-slate-800 text-xs text-slate-300">
           <span class="font-medium flex items-center gap-1.5">
             <span id="mapTitle">World Map</span>
           </span>
-          <button id="expandMapBtn" class="hover:text-skyrim-gold transition-colors text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-800/80">
+          <button id="expandMapBtn" class="hover:text-skyrim-gold transition-colors text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-800">
             Expand
           </button>
         </div>
 
         <div class="relative flex-1 w-full h-full bg-slate-950">
           <canvas id="mapCanvas" class="w-full h-full block outline-none"></canvas>
-          <div id="mapInstructions" class="absolute bottom-2 left-2 right-2 text-center text-[11px] text-slate-400 bg-black/70 backdrop-blur-sm py-1.5 px-2 rounded-xl pointer-events-none">
+          <div id="mapInstructions" class="absolute bottom-2 left-2 right-2 text-center text-[11px] text-slate-400 bg-slate-950/90 py-1.5 px-2 rounded-xl pointer-events-none border border-slate-800/60">
             Click terrain to place your pin
           </div>
         </div>
@@ -193,7 +192,7 @@
       </aside>
 
       <!-- Round Result Modal -->
-      <div id="roundResultModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div id="roundResultModal" class="hidden absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-5">
           <h2 id="resultModalTitle" class="text-xl font-bold text-skyrim-gold">Round Result</h2>
           <div class="py-2">
