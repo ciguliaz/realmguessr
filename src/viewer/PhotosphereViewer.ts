@@ -144,6 +144,22 @@ export class PhotosphereViewer {
     this.scene.render();
   }
 
+  public getPerformanceMetrics(): {
+    fps: number;
+    scalingLevel: number;
+    isRendering: boolean;
+    isMotionActive: boolean;
+    drawCalls: number;
+  } {
+    return {
+      fps: Math.round(this.engine.getFps()),
+      scalingLevel: this.isMotionActive ? this.motionScalingLevel : this.normalScalingLevel,
+      isRendering: this.isRendering,
+      isMotionActive: this.isMotionActive,
+      drawCalls: (this.engine as unknown as { _drawCalls?: { current?: number } })._drawCalls?.current ?? this.scene.getActiveMeshes().length,
+    };
+  }
+
   /**
    * Loads a new 360 equirectangular panorama image
    */

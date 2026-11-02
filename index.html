@@ -11,6 +11,9 @@
       <!-- 360 Panorama Viewport Canvas -->
       <canvas id="panoCanvas" class="absolute inset-0 w-full h-full block outline-none z-0"></canvas>
 
+      <!-- F3 Debug & Performance Overlay (Global toggle) -->
+      <div id="debugOverlay" class="hidden fixed top-3 left-3 z-50 pointer-events-none select-none font-mono text-[11px] leading-tight text-emerald-400 bg-slate-950/90 border border-slate-800 rounded-xl p-3 shadow-2xl min-w-[220px]"></div>
+
       <!-- Clean Modern Lobby Overlay (Visible initially, optimized solid background without backdrop-blur) -->
       <div id="lobbyOverlay" class="absolute inset-0 z-40 bg-slate-950/95 flex items-center justify-center p-6 transition-all duration-500 ease-out">
         <div class="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-8">

@@ -125,6 +125,18 @@ export class TerrainMapViewer {
     this.scene.render();
   }
 
+  public getPerformanceMetrics(): {
+    fps: number;
+    isRendering: boolean;
+    drawCalls: number;
+  } {
+    return {
+      fps: Math.round(this.engine.getFps()),
+      isRendering: this.isRendering,
+      drawCalls: (this.engine as unknown as { _drawCalls?: { current?: number } })._drawCalls?.current ?? this.scene.getActiveMeshes().length,
+    };
+  }
+
   private setupTerrainStyling() {
     const mat = new StandardMaterial('terrainMat', this.scene);
     
